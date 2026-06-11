@@ -156,6 +156,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* EXERCISES TAB */
 .ex-tab-list{padding:0 16px;display:flex;flex-direction:column;gap:8px}
+.ex-search-wrap{padding:8px 16px 4px}
+.ex-search-inp{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px 10px 36px;outline:none;transition:border-color .15s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:11px center}
+.ex-search-inp::placeholder{color:var(--muted)}
+.ex-search-inp:focus{border-color:var(--accent)}
 .ex-tab-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
 .ex-tab-chip::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.5}
 .ex-tab-chip:active{background:var(--surface2);transform:scale(.98)}
@@ -304,6 +308,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <input type="text" class="wt-inp" id="wt-inp" placeholder="Name this workout…" maxlength="60" oninput="saveWT()">
   </div>
   <div class="hdr-acts">
+    <div class="icon-btn" title="Copy workout to clipboard" onclick="copyCurrentWorkout()">📋</div>
     <div class="icon-btn" title="Import" onclick="showImportModal()">📂</div>
     <div class="icon-btn ac" title="Complete" onclick="showCompleteModal()">✓</div>
   </div>
@@ -479,6 +484,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <span class="sec-ttl">ALL EXERCISES</span>
     <span class="mono-sm" id="exercises-count"></span>
   </div>
+  <div class="ex-search-wrap">
+    <input type="search" class="ex-search-inp" id="ex-search-inp" placeholder="Search exercises…" autocomplete="off" oninput="filterExercisesTab()">
+  </div>
   <div class="ex-tab-list" id="ex-tab-list"></div>
   <div style="height:80px"></div>
 </div>
@@ -587,6 +595,12 @@ function goBack() { saveDetailState(); stopRestTimer(); showScreen('workout'); r
 // ══════════════════════════════════════════════════════════
 function saveWT() { W.title = document.getElementById('wt-inp').value.trim(); saveStorage(); }
 function saveSessionNotes() { W.sessionNotes = document.getElementById('session-notes').value; saveStorage(); }
+
+// Copy current in-progress workout to clipboard without completing it
+function copyCurrentWorkout() {
+  if(!W.exercises.length) { toast('Nothing to copy yet','err'); return; }
+  copyToClip({ ...W, completedAt: new Date().toISOString() });
+}
 
 // ══════════════════════════════════════════════════════════
 // AUTOCOMPLETE DROPDOWN
@@ -1192,30 +1206,55 @@ function renderExercisesTab() {
     });
   });
   const exercises = Object.values(map).sort((a,b)=>a.name.localeCompare(b.name));
+  // Cache for filter use
+  window._exTabData = exercises;
   document.getElementById('exercises-count').textContent = `${exercises.length} exercise${exercises.length!==1?'s':''}`;
   if(!exercises.length) {
     list.innerHTML=`<div class="empty"><div class="empty-ico">📚</div><div class="empty-ttl">NO EXERCISES YET</div><div class="empty-sub">Exercises you log will appear here<br>with their full history</div></div>`;
     return;
   }
-  list.innerHTML = exercises.map(ex => {
-    const count = ex.sessions.length;
-    const lastSession = ex.sessions[ex.sessions.length-1];
-    const lastDate = lastSession ? fd(lastSession.date) : '—';
-    const lastSets = lastSession?.e?.sets;
-    const lastWeight = lastSets?.length ? lastSets[lastSets.length-1]?.weight : '';
-    const lastVal = lastSets?.length ? (ex.durMode ? fmtDur(lastSets[lastSets.length-1]?.dur) : (lastSets[lastSets.length-1]?.reps||'—')+' reps') : '';
-    const pills = [
-      `<span class="ex-tab-pill">${count} session${count!==1?'s':''}</span>`,
-      lastWeight ? `<span class="ex-tab-pill">${lastWeight} lbs</span>` : '',
-      ex.hasTips ? `<span class="ex-tab-pill tip">💡 has tips</span>` : '',
-      ex.durMode ? `<span class="ex-tab-pill">⏱ duration</span>` : '',
-    ].filter(Boolean).join('');
-    return `<div class="ex-tab-chip" onclick="showExerciseDetailModal('${x(ex.name)}')">
-      <div class="ex-tab-name">${x(ex.name)}</div>
-      <div class="ex-tab-meta">Last: ${lastDate}${lastVal?' · '+lastVal:''}</div>
-      <div class="ex-tab-chips-row">${pills}</div>
-    </div>`;
-  }).join('');
+  // Clear search when re-rendering from scratch
+  const si = document.getElementById('ex-search-inp');
+  if(si) si.value = '';
+  list.innerHTML = exercises.map(buildExTabChip).join('');
+}
+
+function buildExTabChip(ex) {
+  const count = ex.sessions.length;
+  const lastSession = ex.sessions[ex.sessions.length-1];
+  const lastDate = lastSession ? fd(lastSession.date) : '—';
+  const lastSets = lastSession?.e?.sets;
+  const lastWeight = lastSets?.length ? lastSets[lastSets.length-1]?.weight : '';
+  const lastVal = lastSets?.length ? (ex.durMode ? fmtDur(lastSets[lastSets.length-1]?.dur) : (lastSets[lastSets.length-1]?.reps||'—')+' reps') : '';
+  const pills = [
+    `<span class="ex-tab-pill">${count} session${count!==1?'s':''}</span>`,
+    lastWeight ? `<span class="ex-tab-pill">${lastWeight} lbs</span>` : '',
+    ex.hasTips ? `<span class="ex-tab-pill tip">💡 has tips</span>` : '',
+    ex.durMode ? `<span class="ex-tab-pill">⏱ duration</span>` : '',
+  ].filter(Boolean).join('');
+  return `<div class="ex-tab-chip" onclick="showExerciseDetailModal('${x(ex.name)}')">
+    <div class="ex-tab-name">${x(ex.name)}</div>
+    <div class="ex-tab-meta">Last: ${lastDate}${lastVal?' · '+lastVal:''}</div>
+    <div class="ex-tab-chips-row">${pills}</div>
+  </div>`;
+}
+
+function filterExercisesTab() {
+  const q = (document.getElementById('ex-search-inp')?.value || '').trim().toLowerCase();
+  const list = document.getElementById('ex-tab-list');
+  const all = window._exTabData || [];
+  if(!q) {
+    list.innerHTML = all.length ? all.map(buildExTabChip).join('') : '';
+    document.getElementById('exercises-count').textContent = `${all.length} exercise${all.length!==1?'s':''}`;
+    return;
+  }
+  const filtered = all.filter(ex => ex.name.toLowerCase().includes(q));
+  document.getElementById('exercises-count').textContent = `${filtered.length} of ${all.length}`;
+  if(!filtered.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-ico">🔍</div><div class="empty-ttl">NO MATCHES</div><div class="empty-sub">No exercises match "<em>${x(q)}</em>"</div></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(buildExTabChip).join('');
 }
 
 function showExerciseDetailModal(name) {
