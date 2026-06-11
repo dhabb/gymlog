@@ -144,6 +144,34 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .notes-area{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;padding:12px 14px;outline:none;resize:none;transition:border-color .15s;min-height:80px}
 .notes-area::placeholder{color:var(--muted2)}
 .notes-area:focus{border-color:var(--accent)}
+/* Tips distinct styling */
+.tips-area{border-color:rgba(232,255,71,.25)}
+.tips-area:focus{border-color:var(--accent)}
+
+/* SESSION NOTES */
+.session-notes-block{margin:0 16px 10px}
+.session-notes-area{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;padding:12px 14px;outline:none;resize:none;transition:border-color .15s;min-height:70px}
+.session-notes-area::placeholder{color:var(--muted2)}
+.session-notes-area:focus{border-color:var(--accent)}
+
+/* EXERCISES TAB */
+.ex-tab-list{padding:0 16px;display:flex;flex-direction:column;gap:8px}
+.ex-tab-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.ex-tab-chip::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.5}
+.ex-tab-chip:active{background:var(--surface2);transform:scale(.98)}
+.ex-tab-name{font-size:15px;font-weight:500;margin-bottom:3px}
+.ex-tab-meta{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+.ex-tab-chips-row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.ex-tab-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.ex-tab-pill.tip{border-color:rgba(232,255,71,.3);color:rgba(232,255,71,.7)}
+
+/* REST TIME BADGE in history */
+.rest-badge{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);padding:1px 5px;margin-left:4px;vertical-align:middle}
+
+/* TIPS MODAL ENTRIES */
+.tip-entry{margin-bottom:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--rsm);border-left:3px solid rgba(232,255,71,.4)}
+.tip-entry-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:4px}
+.tip-entry-text{font-size:13px;color:var(--text);line-height:1.5}
 
 /* BOTTOM CTA */
 .bottom-cta{position:fixed;bottom:0;left:0;right:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,transparent);z-index:50;display:none}
@@ -305,6 +333,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       onclick="showTemplateModal()">📋 Import Exercise List</button>
   </div>
 
+  <!-- SESSION NOTES -->
+  <div class="sec-hdr" style="padding-top:14px">
+    <span class="sec-ttl">SESSION NOTES</span>
+  </div>
+  <div class="session-notes-block">
+    <textarea class="session-notes-area" id="session-notes" placeholder="Overall workout notes, how the session felt…" rows="2" oninput="saveSessionNotes()"></textarea>
+  </div>
+
   <div style="height:80px"></div>
 </div>
 
@@ -320,6 +356,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="dtl-btns">
       <div class="qbtn hi" onclick="showExHistory()">📈 History</div>
       <div class="qbtn" onclick="showExNotes()">📝 Notes</div>
+      <div class="qbtn" onclick="showExTips()">💡 Tips</div>
       <div class="qbtn" id="dur-mode-btn" onclick="toggleDurMode()">⏱ Duration</div>
     </div>
   </div>
@@ -401,6 +438,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <textarea class="notes-area" id="ex-notes" placeholder="How did it feel? Any PRs? Form cues…" rows="3"></textarea>
   </div>
 
+  <!-- Tips -->
+  <div class="notes-block">
+    <div class="sec-hdr" style="padding:12px 0 8px">
+      <span class="sec-ttl">EXERCISE TIPS</span>
+      <span class="mono-sm" style="color:rgba(232,255,71,.5)">technique · cues · reminders</span>
+    </div>
+    <textarea class="notes-area tips-area" id="ex-tips" placeholder="Form tips, coaching cues, things to remember…" rows="3"></textarea>
+  </div>
+
   <div style="height:110px"></div>
   <div class="bottom-cta" id="detail-cta">
     <button class="complete-btn" onclick="saveAndBack()">SAVE EXERCISE</button>
@@ -427,10 +473,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div style="height:80px"></div>
 </div>
 
+<!-- ═══ SCREEN: EXERCISES ═══ -->
+<div class="screen" id="screen-exercises">
+  <div class="sec-hdr">
+    <span class="sec-ttl">ALL EXERCISES</span>
+    <span class="mono-sm" id="exercises-count"></span>
+  </div>
+  <div class="ex-tab-list" id="ex-tab-list"></div>
+  <div style="height:80px"></div>
+</div>
+
 <!-- ═══ NAV ═══ -->
 <div class="nav-tabs" id="nav-tabs">
   <button class="nav-tab active" id="tab-workout" onclick="showScreen('workout')">
     <span class="nav-tab-icon">🏋️</span><span class="nav-tab-lbl">Workout</span>
+  </button>
+  <button class="nav-tab" id="tab-exercises" onclick="showScreen('exercises')">
+    <span class="nav-tab-icon">📚</span><span class="nav-tab-lbl">Exercises</span>
   </button>
   <button class="nav-tab" id="tab-history" onclick="showScreen('history')">
     <span class="nav-tab-icon">📋</span><span class="nav-tab-lbl">History</span>
@@ -441,7 +500,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
-let W = { title:'', date: new Date().toISOString(), exercises:[] };
+let W = { title:'', date: new Date().toISOString(), exercises:[], sessionNotes:'' };
 let EI = null;          // current exercise index
 let restInt = null;
 let restLeft = 0;
@@ -469,10 +528,12 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStorage();
   renderExList();
   renderHistory();
+  renderExercisesTab();
   const inp = document.getElementById('new-ex-inp');
   inp.addEventListener('keypress', e => { if(e.key==='Enter'){ addExercise(); closeAcDrop(); } });
   inp.addEventListener('blur', () => setTimeout(closeAcDrop, 150));
   document.getElementById('wt-inp').value = W.title || '';
+  document.getElementById('session-notes').value = W.sessionNotes || '';
   document.getElementById('modal').addEventListener('click', e => {
     if(e.target === document.getElementById('modal')) closeModal();
   });
@@ -509,6 +570,7 @@ function showScreen(name) {
   document.getElementById('nav-tabs').style.display='flex';
   document.getElementById('detail-cta').style.display='none';
   if(name==='history') renderHistory();
+  if(name==='exercises') renderExercisesTab();
 }
 function showDetailScreen(i) {
   EI=i;
@@ -524,6 +586,7 @@ function goBack() { saveDetailState(); stopRestTimer(); showScreen('workout'); r
 // WORKOUT TITLE
 // ══════════════════════════════════════════════════════════
 function saveWT() { W.title = document.getElementById('wt-inp').value.trim(); saveStorage(); }
+function saveSessionNotes() { W.sessionNotes = document.getElementById('session-notes').value; saveStorage(); }
 
 // ══════════════════════════════════════════════════════════
 // AUTOCOMPLETE DROPDOWN
@@ -559,7 +622,7 @@ function closeAcDrop() { document.getElementById('ac-drop').classList.remove('op
 function addExercise() {
   const inp = document.getElementById('new-ex-inp');
   const name = inp.value.trim(); if(!name) return;
-  W.exercises.push({ name, warmup:{reps:'',weight:''}, sets:[], restSeconds:90, notes:'', rir:'', durMode:false });
+  W.exercises.push({ name, warmup:{reps:'',weight:''}, sets:[], restSeconds:90, notes:'', tips:'', rir:'', durMode:false });
   inp.value = ''; closeAcDrop();
   saveStorage(); renderExList();
 }
@@ -605,10 +668,9 @@ function loadDetail() {
   document.getElementById('wu-weight').value = ex.warmup.weight  || '';
   document.getElementById('rest-inp').value  = ex.restSeconds    || 90;
   document.getElementById('ex-notes').value  = ex.notes          || '';
+  document.getElementById('ex-tips').value   = ex.tips           || '';
   updateRestPillUI(ex.restSeconds||90);
-  // RIR
   updateRIRUI(ex.rir||'');
-  // Duration mode
   updateDurModeUI(ex.durMode||false);
   renderSets();
 }
@@ -619,6 +681,7 @@ function saveDetailState() {
   ex.warmup.weight = document.getElementById('wu-weight').value;
   ex.restSeconds   = parseInt(document.getElementById('rest-inp').value)||90;
   ex.notes         = document.getElementById('ex-notes').value;
+  ex.tips          = document.getElementById('ex-tips').value;
   saveStorage();
 }
 function saveAndBack() {
@@ -839,6 +902,39 @@ function showExNotes() {
 }
 
 // ══════════════════════════════════════════════════════════
+// EX TIPS MODAL
+// ══════════════════════════════════════════════════════════
+function showExTips() {
+  saveDetailState();
+  const ex = W.exercises[EI];
+  const nm = ex.name.toLowerCase().trim();
+  // Gather all past tips for this exercise from history (dedupe by content)
+  const seen = new Set();
+  const tipEntries = [];
+  // Current session tip first if set
+  if(ex.tips?.trim()) {
+    seen.add(ex.tips.trim());
+    tipEntries.push({ date: null, workoutTitle: null, text: ex.tips.trim(), isCurrent: true });
+  }
+  history.forEach(w => {
+    const m = w.exercises?.find(e => e.name.toLowerCase().trim()===nm && e.tips?.trim());
+    if(m && !seen.has(m.tips.trim())) {
+      seen.add(m.tips.trim());
+      tipEntries.push({ date: new Date(w.date||w.completedAt), workoutTitle: w.title||null, text: m.tips.trim(), isCurrent: false });
+    }
+  });
+  if(!tipEntries.length){
+    openModal(`TIPS: ${ex.name.toUpperCase()}`,`<div style="text-align:center;padding:28px 0;color:var(--muted);font-size:14px">No tips saved for this exercise yet.<br><span style="font-size:12px;margin-top:6px;display:block">Add tips in the Exercise Tips field below.</span></div><button class="mBtn sec" onclick="closeModal()">Close</button>`);
+    return;
+  }
+  const body = tipEntries.map(t => {
+    const dateStr = t.isCurrent ? '<span style="color:var(--accent)">Current session</span>' : `${fd(t.date)} · ${ft2(t.date)}${t.workoutTitle?` — <em>${x(t.workoutTitle)}</em>`:''}`;
+    return `<div class="tip-entry"><div class="tip-entry-date">${dateStr}</div><div class="tip-entry-text">${x(t.text)}</div></div>`;
+  }).join('');
+  openModal(`TIPS: ${ex.name.toUpperCase()}`, `<div style="margin-bottom:14px">${body}</div><button class="mBtn sec" onclick="closeModal()">Close</button>`);
+}
+
+// ══════════════════════════════════════════════════════════
 // TEMPLATE IMPORT (exercise list)
 // ══════════════════════════════════════════════════════════
 let templateRows = []; // [{name, sets, reps, weight, durMode}]
@@ -979,15 +1075,17 @@ function finishWorkout(mode) {
   if(mode==='todayAndClip') { exportJSON([snap], `gymlog_today_${fname}.json`); copyToClip(snap); }
   if(mode==='allAndClip')   { exportJSON(history, `gymlog_history_${fname}.json`); copyToClip(snap); }
   if(mode==='save')         { toast('Workout saved!','ok'); }
-  W={title:'',date:new Date().toISOString(),exercises:[]};
+  W={title:'',date:new Date().toISOString(),exercises:[],sessionNotes:''};
   document.getElementById('wt-inp').value='';
-  saveStorage(); renderExList();
+  document.getElementById('session-notes').value='';
+  saveStorage(); renderExList(); renderExercisesTab();
 }
 function copyToClip(w) {
   const lines=[], d=new Date(w.completedAt||w.date);
   lines.push(`GYM LOG${w.title?' — '+w.title:''}`);
   lines.push(fd(d)+' · '+ft2(d));
   lines.push('─'.repeat(32));
+  if(w.sessionNotes?.trim()) { lines.push(''); lines.push('Session Notes: '+w.sessionNotes.trim()); }
   (w.exercises||[]).forEach(ex=>{
     lines.push(''); lines.push(`▸ ${ex.name.toUpperCase()}${ex.durMode?' [DURATION]':''}`);
     if(ex.warmup?.reps||ex.warmup?.weight) lines.push(`  Warm-up: ${ex.warmup.reps||'—'} × ${ex.warmup.weight||'—'} lbs`);
@@ -996,8 +1094,9 @@ function copyToClip(w) {
       lines.push(`  Set ${i+1}: ${val}${s.weight?' × '+s.weight+' lbs':''}`);
     });
     if(ex.rir) lines.push(`  RIR: ${ex.rir} (${RIR_LABELS[ex.rir]||''})`);
-    if(ex.restSeconds) lines.push(`  Rest: ${ex.restSeconds}s`);
+    if(ex.restSeconds) lines.push(`  Rest: ${ft(ex.restSeconds)}`);
     if(ex.notes) lines.push(`  Notes: ${ex.notes}`);
+    if(ex.tips) lines.push(`  Tips: ${ex.tips}`);
   });
   const txt=lines.join('\n');
   if(navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(()=>toast('Copied ✓','ok')).catch(()=>clipFb(txt));
@@ -1014,7 +1113,11 @@ function renderHistory() {
   if(!history.length){list.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-ttl">NO HISTORY YET</div><div class="empty-sub">Complete a workout or import<br>saved JSON files above</div></div>`;return;}
   list.innerHTML=history.map((w,wi)=>{
     const d=new Date(w.date||w.completedAt);
-    const exSum=(w.exercises||[]).map(e=>`<div style="margin-bottom:3px"><span class="h-exname">${x(e.name)}</span><span style="color:var(--muted);font-size:12px"> · ${e.sets.length} set${e.sets.length!==1?'s':''}${e.sets[0]?.weight?' · '+e.sets[0].weight+' lbs':''}</span></div>`).join('');
+    const exSum=(w.exercises||[]).map(e=>{
+      const restStr=e.restSeconds?`<span class="rest-badge">rest ${ft(e.restSeconds)}</span>`:'';
+      return `<div style="margin-bottom:3px"><span class="h-exname">${x(e.name)}</span><span style="color:var(--muted);font-size:12px"> · ${e.sets.length} set${e.sets.length!==1?'s':''}${e.sets[0]?.weight?' · '+e.sets[0].weight+' lbs':''}</span>${restStr}</div>`;
+    }).join('');
+    const snote=w.sessionNotes?.trim()?`<div class="h-note" style="margin-top:6px;border-left:3px solid var(--border)">📝 ${x(w.sessionNotes)}</div>`:'';
     const detail=(w.exercises||[]).map(e=>{
       const wu=(e.warmup?.reps||e.warmup?.weight)?`<div class="h-set-row" style="margin-bottom:3px">Warm-up: <span>${e.warmup.reps||'—'} × ${e.warmup.weight||'—'} lbs</span></div>`:'';
       const isDur=e.durMode;
@@ -1023,14 +1126,18 @@ function renderHistory() {
         return `<div class="h-set-row">Set ${si+1}: <span>${val}${s.weight?' × '+s.weight+' lbs':''}</span></div>`;
       }).join('');
       const rir=e.rir?`<div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace">RIR: ${e.rir}</div>`:'';
+      const restLine=e.restSeconds?`<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">Rest between sets: ${ft(e.restSeconds)}</div>`:'';
       const nt=e.notes?`<div class="h-note">"${x(e.notes)}"</div>`:'';
-      return `<div style="margin-bottom:12px"><div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;color:var(--text);margin-bottom:4px">${x(e.name)}${isDur?' ⏱':''}</div>${wu}${rows}${rir}${nt}</div>`;
+      const tp=e.tips?`<div class="h-note" style="border-left:3px solid rgba(232,255,71,.3)">💡 ${x(e.tips)}</div>`:'';
+      return `<div style="margin-bottom:12px"><div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;color:var(--text);margin-bottom:4px">${x(e.name)}${isDur?' ⏱':''}</div>${wu}${rows}${rir}${restLine}${nt}${tp}</div>`;
     }).join('');
+    const snoteDetail=w.sessionNotes?.trim()?`<div style="margin-bottom:12px;padding:10px;background:var(--surface2);border-radius:var(--rsm)"><div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--muted);margin-bottom:4px">SESSION NOTES</div><div style="font-size:13px;color:var(--text);line-height:1.5">${x(w.sessionNotes)}</div></div>`:'';
     return `<div class="h-card">
       <div class="h-date">${fd(d)} · ${ft2(d)}</div>
       ${w.title?`<div class="h-title">${x(w.title)}</div>`:''}
       <div class="h-exlist">${exSum}</div>
-      <div class="h-detail" id="hd-${wi}">${detail}
+      ${snote}
+      <div class="h-detail" id="hd-${wi}">${snoteDetail}${detail}
         <div class="h-actions">
           <div class="h-act" onclick="exportSingle(${wi})">Export</div>
           <div class="h-act" onclick="copySingle(${wi})">Copy</div>
@@ -1057,9 +1164,118 @@ function clearHistory(){
     <button class="mBtn sec" onclick="closeModal()">Cancel</button>
   `);
 }
-function confirmClearHistory(){history=[];saveStorage();renderHistory();closeModal();toast('History cleared','ok');}
+function confirmClearHistory(){history=[];saveStorage();renderHistory();renderExercisesTab();closeModal();toast('History cleared','ok');}
 function exportSingle(i){const w=history[i];exportJSON([w],`gymlog_${fmtDateFile(new Date(w.date||w.completedAt))}.json`);toast('Exported!','ok');}
 function copySingle(i){copyToClip(history[i]);}
+
+// ══════════════════════════════════════════════════════════
+// EXERCISES TAB
+// ══════════════════════════════════════════════════════════
+function renderExercisesTab() {
+  const list = document.getElementById('ex-tab-list');
+  if(!list) return;
+  // Build unique exercise map: name → {sessions, lastDate, lastWeight, lastReps, hasTips, hasDurMode}
+  const map = {};
+  const allSessions = [...history];
+  // Include current workout exercises too
+  if(W.exercises.length) {
+    allSessions.push({ ...W, completedAt: W.date, _isCurrent: true });
+  }
+  allSessions.forEach(w => {
+    (w.exercises||[]).forEach(e => {
+      const key = e.name.trim().toLowerCase();
+      if(!map[key]) map[key] = { name: e.name.trim(), sessions:[], hasTips:false, durMode: e.durMode||false };
+      const d = new Date(w.date||w.completedAt);
+      map[key].sessions.push({ date: d, w, e });
+      if(e.tips?.trim()) map[key].hasTips = true;
+      if(e.durMode) map[key].durMode = true;
+    });
+  });
+  const exercises = Object.values(map).sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('exercises-count').textContent = `${exercises.length} exercise${exercises.length!==1?'s':''}`;
+  if(!exercises.length) {
+    list.innerHTML=`<div class="empty"><div class="empty-ico">📚</div><div class="empty-ttl">NO EXERCISES YET</div><div class="empty-sub">Exercises you log will appear here<br>with their full history</div></div>`;
+    return;
+  }
+  list.innerHTML = exercises.map(ex => {
+    const count = ex.sessions.length;
+    const lastSession = ex.sessions[ex.sessions.length-1];
+    const lastDate = lastSession ? fd(lastSession.date) : '—';
+    const lastSets = lastSession?.e?.sets;
+    const lastWeight = lastSets?.length ? lastSets[lastSets.length-1]?.weight : '';
+    const lastVal = lastSets?.length ? (ex.durMode ? fmtDur(lastSets[lastSets.length-1]?.dur) : (lastSets[lastSets.length-1]?.reps||'—')+' reps') : '';
+    const pills = [
+      `<span class="ex-tab-pill">${count} session${count!==1?'s':''}</span>`,
+      lastWeight ? `<span class="ex-tab-pill">${lastWeight} lbs</span>` : '',
+      ex.hasTips ? `<span class="ex-tab-pill tip">💡 has tips</span>` : '',
+      ex.durMode ? `<span class="ex-tab-pill">⏱ duration</span>` : '',
+    ].filter(Boolean).join('');
+    return `<div class="ex-tab-chip" onclick="showExerciseDetailModal('${x(ex.name)}')">
+      <div class="ex-tab-name">${x(ex.name)}</div>
+      <div class="ex-tab-meta">Last: ${lastDate}${lastVal?' · '+lastVal:''}</div>
+      <div class="ex-tab-chips-row">${pills}</div>
+    </div>`;
+  }).join('');
+}
+
+function showExerciseDetailModal(name) {
+  const nm = name.toLowerCase().trim();
+  const allSessions = [...history];
+  if(W.exercises.length) allSessions.push({ ...W, completedAt: W.date, _isCurrent: true });
+
+  const sessions = allSessions
+    .map(w => ({ w, m: w.exercises?.find(e => e.name.toLowerCase().trim()===nm) }))
+    .filter(o => o.m)
+    .reverse(); // oldest first for history display
+
+  if(!sessions.length) return;
+
+  // Collect all unique tips
+  const seenTips = new Set();
+  const allTips = [];
+  sessions.forEach(({w,m}) => {
+    if(m.tips?.trim() && !seenTips.has(m.tips.trim())) {
+      seenTips.add(m.tips.trim());
+      allTips.push({ date: w._isCurrent ? null : new Date(w.date||w.completedAt), text: m.tips.trim(), wTitle: w.title||null, isCurrent: !!w._isCurrent });
+    }
+  });
+
+  const historyHTML = sessions.slice().reverse().map(({w,m}) => {
+    const d = w._isCurrent ? null : new Date(w.date||w.completedAt);
+    const dateStr = w._isCurrent ? '<span style="color:var(--accent)">Current session</span>' : `${fd(d)} · ${ft2(d)}`;
+    const wTitle = (!w._isCurrent && w.title) ? `<div class="exh-wname">${x(w.title)}</div>` : '';
+    const wu=(m.warmup?.reps||m.warmup?.weight)?`<div class="exh-warmup">Warm-up: ${m.warmup.reps||'—'} × ${m.warmup.weight||'—'} lbs</div>`:'';
+    const isDur = m.durMode;
+    const rows = m.sets.map((s,i)=>{
+      const val=isDur?fmtDur(s.dur):(s.reps||'—')+' reps';
+      return `<div class="exh-row">Set ${i+1}: <strong>${val}</strong>${s.weight?' @ <strong>'+s.weight+' lbs</strong>':''}</div>`;
+    }).join('');
+    const rir = m.rir?`<div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace">RIR: ${m.rir}</div>`:'';
+    const restLine = m.restSeconds?`<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px">Rest: ${ft(m.restSeconds)}</div>`:'';
+    const noteHtml = m.notes?.trim()?`<div class="h-note" style="margin-top:6px">"${x(m.notes)}"</div>`:'';
+    return `<div class="exh-session"><div class="exh-date">${dateStr}</div>${wTitle}${wu}${rows}${rir}${restLine}${noteHtml}</div>`;
+  }).join('');
+
+  const tipsHTML = allTips.length ? allTips.map(t => {
+    const dateStr = t.isCurrent ? '<span style="color:var(--accent)">Current session</span>' : `${fd(t.date)} · ${ft2(t.date)}${t.wTitle?` — <em>${x(t.wTitle)}</em>`:''}`;
+    return `<div class="tip-entry"><div class="tip-entry-date">${dateStr}</div><div class="tip-entry-text">${x(t.text)}</div></div>`;
+  }).join('') : `<div style="color:var(--muted);font-size:13px;padding:8px 0">No tips saved for this exercise yet.</div>`;
+
+  openModal(name.toUpperCase(), `
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="mBtn sec" style="font-size:12px;padding:8px;margin-bottom:0" onclick="switchExModalTab('hist')">📈 History</button>
+      <button class="mBtn sec" style="font-size:12px;padding:8px;margin-bottom:0" onclick="switchExModalTab('tips')">💡 Tips</button>
+    </div>
+    <div id="exm-hist">${historyHTML}</div>
+    <div id="exm-tips" style="display:none">${tipsHTML}</div>
+    <button class="mBtn sec" style="margin-top:14px" onclick="closeModal()">Close</button>
+  `);
+}
+
+function switchExModalTab(tab) {
+  document.getElementById('exm-hist').style.display = tab==='hist' ? 'block' : 'none';
+  document.getElementById('exm-tips').style.display = tab==='tips' ? 'block' : 'none';
+}
 
 // ══════════════════════════════════════════════════════════
 // IMPORT WORKOUT FILES
@@ -1081,7 +1297,7 @@ function loadWorkoutFiles(ev){
     const r=new FileReader();
     r.onload=e=>{
       try{const arr=Array.isArray(JSON.parse(e.target.result))?JSON.parse(e.target.result):[JSON.parse(e.target.result)];arr.forEach(w=>{const k=w.completedAt||w.date;if(!keys.has(k)){history.push(w);keys.add(k);added++;}});}catch{}
-      if(--pending===0){history.sort((a,b)=>new Date(b.date||b.completedAt)-new Date(a.date||a.completedAt));saveStorage();renderHistory();toast(`Imported ${added} new session${added!==1?'s':''}`,added?'ok':'');showScreen('history');}
+      if(--pending===0){history.sort((a,b)=>new Date(b.date||b.completedAt)-new Date(a.date||a.completedAt));saveStorage();renderHistory();renderExercisesTab();toast(`Imported ${added} new session${added!==1?'s':''}`,added?'ok':'');showScreen('history');}
     };r.readAsText(file);
   });ev.target.value='';
 }
